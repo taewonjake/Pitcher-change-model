@@ -27,10 +27,12 @@ except ImportError:
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 MODEL_DIR = BASE_DIR / "model"
+LOG_DIR = BASE_DIR / "logs"
 
 # 디렉토리 생성
 DATA_DIR.mkdir(exist_ok=True)
 MODEL_DIR.mkdir(exist_ok=True)
+LOG_DIR.mkdir(exist_ok=True)
 
 def generate_synthetic_data(n_samples=10000):
     """
@@ -304,6 +306,49 @@ def train_random_forest(X, y):
     print(f"Train Accuracy: {train_score:.4f}")
     print(f"Test Accuracy: {test_score:.4f}")
     
+    # Feature importance 저장
+    feature_names = X.columns.tolist() if hasattr(X, "columns") else [f"feature_{i}" for i in range(X.shape[1])]
+    importance_df = pd.DataFrame({
+        "feature": feature_names,
+        "importance": rf_model.feature_importances_
+    }).sort_values("importance", ascending=False)
+    importance_path = LOG_DIR / "rf_feature_importance.csv"
+    importance_df.to_csv(importance_path, index=False)
+    print(f"Feature importance saved to {importance_path}")
+    
+    # 예측 결과 및 확률 저장
+    y_pred = rf_model.predict(X_test)
+    y_proba = rf_model.predict_proba(X_test)[:, 1]
+    predictions_df = pd.DataFrame({
+        "actual": y_test,
+        "predicted": y_pred,
+        "probability": y_proba
+    })
+    predictions_path = LOG_DIR / "rf_predictions.csv"
+    predictions_df.to_csv(predictions_path, index=False)
+    print(f"Predictions saved to {predictions_path}")
+    
+    from sklearn.metrics import roc_curve, auc, confusion_matrix
+    
+    # ROC Curve 데이터
+    fpr, tpr, thresholds = roc_curve(y_test, y_proba)
+    roc_auc = auc(fpr, tpr)
+    roc_df = pd.DataFrame({"fpr": fpr, "tpr": tpr, "threshold": thresholds})
+    roc_path = LOG_DIR / "rf_roc_curve.csv"
+    roc_df.to_csv(roc_path, index=False)
+    print(f"ROC Curve data saved to {roc_path} (AUC={roc_auc:.4f})")
+    
+    # Confusion Matrix
+    cm = confusion_matrix(y_test, y_pred)
+    cm_df = pd.DataFrame(
+        cm,
+        index=["Actual 0", "Actual 1"],
+        columns=["Pred 0", "Pred 1"]
+    )
+    cm_path = LOG_DIR / "rf_confusion_matrix.csv"
+    cm_df.to_csv(cm_path)
+    print(f"Confusion Matrix saved to {cm_path}")
+    
     return rf_model
 
 def train_lstm(X, y):
@@ -324,30 +369,7 @@ def train_lstm(X, y):
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     
-    # LSTM을 위한 시퀀스 형태로 변환 (특징을 시퀀스로 재구성)
-    # 실제로는 시계열 데이터가 아니므로, 특징을 시퀀스로 변환
-    seq_length = 5
-    n_features = X_train_scaled.shape[1]
-    
-    # 시퀀스 생성 (간단한 방법: 특징을 여러 그룹으로 나눔)
-    def create_sequences(X, seq_len):
-        n_samples = len(X)
-        n_seqs = n_samples // seq_len
-        X_seq = X[:n_seqs * seq_len].reshape(n_seqs, seq_len, n_features // seq_len + 1)
-        # 패딩으로 맞춤
-        if X_seq.shape[2] != n_features:
-            # 간단한 방법: 특징을 평탄화하고 재구성
-            X_seq = X[:n_seqs * seq_len].reshape(n_seqs, seq_len, -1)
-            # 부족한 차원은 0으로 패딩
-            if X_seq.shape[2] < n_features:
-                padding = np.zeros((n_seqs, seq_len, n_features - X_seq.shape[2]))
-                X_seq = np.concatenate([X_seq, padding], axis=2)
-            else:
-                X_seq = X_seq[:, :, :n_features]
-        return X_seq
-    
     # 더 간단한 방법: 특징을 직접 사용 (LSTM 대신 Dense 레이어 사용)
-    # 실제 시계열이 아니므로 간단한 신경망으로 대체
     model = Sequential([
         Dense(64, activation='relu', input_shape=(X_train_scaled.shape[1],)),
         Dropout(0.3),
@@ -372,9 +394,51 @@ def train_lstm(X, y):
         verbose=1
     )
     
+    history_df = pd.DataFrame({
+        "epoch": list(range(1, len(history.history["loss"]) + 1)),
+        "train_loss": history.history["loss"],
+        "train_accuracy": history.history["accuracy"],
+        "val_loss": history.history["val_loss"],
+        "val_accuracy": history.history["val_accuracy"],
+    })
+    history_path = LOG_DIR / "lstm_training_history.csv"
+    history_df.to_csv(history_path, index=False)
+    print(f"LSTM training history saved to {history_path}")
+    
     # 평가
     test_loss, test_acc = model.evaluate(X_test_scaled, y_test, verbose=0)
     print(f"Test Accuracy: {test_acc:.4f}")
+    
+    # 예측 결과 저장
+    y_proba = model.predict(X_test_scaled, verbose=0).flatten()
+    y_pred = (y_proba >= 0.5).astype(int)
+    predictions_df = pd.DataFrame({
+        "actual": y_test,
+        "predicted": y_pred,
+        "probability": y_proba
+    })
+    predictions_path = LOG_DIR / "lstm_predictions.csv"
+    predictions_df.to_csv(predictions_path, index=False)
+    print(f"LSTM predictions saved to {predictions_path}")
+    
+    from sklearn.metrics import roc_curve, auc, confusion_matrix
+    
+    fpr, tpr, thresholds = roc_curve(y_test, y_proba)
+    roc_auc = auc(fpr, tpr)
+    roc_df = pd.DataFrame({"fpr": fpr, "tpr": tpr, "threshold": thresholds})
+    roc_path = LOG_DIR / "lstm_roc_curve.csv"
+    roc_df.to_csv(roc_path, index=False)
+    print(f"LSTM ROC data saved to {roc_path} (AUC={roc_auc:.4f})")
+    
+    cm = confusion_matrix(y_test, y_pred)
+    cm_df = pd.DataFrame(
+        cm,
+        index=["Actual 0", "Actual 1"],
+        columns=["Pred 0", "Pred 1"]
+    )
+    cm_path = LOG_DIR / "lstm_confusion_matrix.csv"
+    cm_df.to_csv(cm_path)
+    print(f"LSTM Confusion Matrix saved to {cm_path}")
     
     return model
 
@@ -504,6 +568,7 @@ def main():
     print("\n" + "=" * 60)
     print("모델 학습 완료!")
     print("=" * 60)
+    print("\nLogs saved in:", LOG_DIR)
 
 if __name__ == "__main__":
     main()

@@ -158,6 +158,7 @@ python train_models.py
 ### 4. 백엔드 서버 실행
 
 ```bash
+.\.venv\Scripts\python.exe .\backend\api\app.py
 python api/app.py
 ```
 
@@ -168,6 +169,7 @@ python api/app.py
 새 터미널에서:
 
 ```bash
+.\.venv\Scripts\python.exe -m streamlit run .\frontend\app.py
 cd frontend
 
 # Windows PowerShell/CMD에서 (권장)
@@ -326,3 +328,127 @@ API 상태 확인
 
 **⚾ 투수 교체 예측 시스템 | AI Coach | Powered by RandomForest & LSTM**
 
+---
+
+### 1) 서비스 범위 확장: 불펜 운영 보조 기능 추가
+
+- 기존 기능: `/predict` 기반 투수 교체 확률 예측
+- 추가 기능: 팀 단위 불펜 상태 조회 + 상황별 추천 투수 제안
+- 핵심 로직:
+  - 불펜 에너지 지수(`energy_index`)
+  - 위험도(`risk_level`)
+  - 투수별 등판 가능성(`availability`)
+  - 이닝/점수차/타자유형 반영 추천 점수(`recommendation_score`)
+
+### 2) 백엔드 API 신규 엔드포인트
+
+기존 `/predict`, `/health`는 유지되며, 아래 API가 추가되었습니다.
+
+- `GET /teams`
+  - KBO 팀 목록 조회
+- `GET /bullpen/status?team=<team_name>`
+  - 팀 불펜 요약 상태 조회 (에너지 지수/위험도/지표)
+- `GET /bullpen/pitchers?team=<team_name>`
+  - 팀 투수별 상태 목록 조회
+  - 로스터 데이터 사용 불가 시 `503` + `ROSTER_UNAVAILABLE`
+- `POST /bullpen/recommend`
+  - 입력 상황(이닝/점수차/타자유형)에 맞는 추천 투수 반환
+
+#### `POST /bullpen/recommend` 예시
+
+Request:
+```json
+{
+  "team": "LG Twins",
+  "inning": 8,
+  "score_diff": 1,
+  "batter_side": "L",
+  "count": 2
+}
+```
+
+Response (요약):
+```json
+{
+  "status": "success",
+  "team": "LG Twins",
+  "context": {
+    "inning": 8,
+    "score_diff": 1,
+    "batter_side": "L"
+  },
+  "bullpen": {
+    "energy_index": 67.4,
+    "risk_level": "caution"
+  },
+  "recommendations": [
+    {
+      "name": "홍길동",
+      "handed": "L",
+      "recommendation_score": 0.81
+    }
+  ],
+  "reasons": [
+    "최근 3일 피로 지표 반영",
+    "이닝/점수차 레버리지 반영",
+    "좌우 매치업 반영"
+  ]
+}
+```
+
+### 3) 데이터 소스 계층 추가
+
+- `backend/data_sources/thesportsdb_client.py`
+  - TheSportsDB에서 팀/최근 경기 데이터 조회
+  - 외부 API 실패 시 fallback 팀 목록 사용
+- `backend/data_sources/kbodata_client.py`
+  - `kbodata` 기반 팀 투수 로스터 조회
+  - Selenium + ChromeDriver 사용
+  - 타임아웃/캐시/오프시즌 fallback 고려
+
+### 4) 프론트엔드 멀티페이지 확장
+
+- 기존 메인 예측 화면: `frontend/app.py` (유지)
+- 신규 페이지: `frontend/pages/1_Bullpen_Dashboard.py`
+  - 팀 선택
+  - 불펜 체력 시각화(bar chart + 테이블)
+  - 상황별 추천 투수 출력
+
+실행 시 Streamlit 사이드바/페이지 목록에서 불펜 대시보드를 함께 사용할 수 있습니다.
+
+### 5) 신규 의존성 (백엔드)
+
+기존 라이브러리에 더해 아래가 추가되었습니다.
+
+- `requests`
+- `kbodata`
+- `selenium`
+- `webdriver-manager`
+
+`backend/requirements.txt` 재설치를 권장합니다.
+
+```bash
+cd backend
+python -m pip install -r requirements.txt
+```
+
+### 6) 신규 환경변수 (선택/권장)
+
+- `THESPORTSDB_API_KEY`
+  - TheSportsDB API 키 (미설정 시 기본 공개 키 사용)
+- `KBO_CHROMEDRIVER_PATH`
+  - ChromeDriver 경로 직접 지정 시 사용
+- `KBO_ROSTER_TIMEOUT_SEC`
+  - 로스터 조회 타임아웃(초)
+- `KBO_ROSTER_SCAN_LIMIT_SEC`
+  - 과거 월 스캔 제한 시간(초)
+- `KBO_ROSTER_CACHE_TTL_SEC`
+  - 로스터 캐시 유지 시간(초)
+- `FRONTEND_API_TIMEOUT_SEC`
+  - 프론트엔드 API 호출 타임아웃(초)
+
+### 7) 동작/장애 대응 참고
+
+- 외부 데이터 연동 실패 시에도 일부 기능은 fallback 데이터로 동작합니다.
+- 단, 팀별 투수 로스터가 확보되지 않으면 `/bullpen/pitchers`, `/bullpen/recommend`는 `503`을 반환할 수 있습니다.
+- 이 경우 응답의 `error_code`, `roster_reason` 필드로 원인을 확인할 수 있습니다.

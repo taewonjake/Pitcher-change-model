@@ -29,3 +29,11 @@ Write-Host "설치 확인: python -c 'import pandas, sklearn, flask, tensorflow;
 
 
 
+
+
+
+
+
+
+
+
