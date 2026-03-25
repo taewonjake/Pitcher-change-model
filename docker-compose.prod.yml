@@ -1,4 +1,4 @@
-name: bullpen-prod
+version: "3.8"
 
 services:
   backend:
