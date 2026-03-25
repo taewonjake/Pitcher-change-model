@@ -58,5 +58,13 @@ jobs:
             set -e
             cd /home/${{ secrets.EC2_USER }}/bullpen-deploy
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE_CMD="docker compose"
+            elif docker-compose --version >/dev/null 2>&1; then
+              COMPOSE_CMD="docker-compose"
+            else
+              echo "Docker Compose is not installed on EC2."
+              exit 1
+            fi
+            $COMPOSE_CMD -f docker-compose.prod.yml pull
+            $COMPOSE_CMD -f docker-compose.prod.yml up -d --remove-orphans
