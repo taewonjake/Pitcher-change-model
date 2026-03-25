@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import requests
 import plotly.graph_objects as go
@@ -53,7 +54,7 @@ with st.sidebar:
     st.header("⚙️ 설정")
     api_url = st.text_input(
         "API URL",
-        value="http://localhost:5000",
+        value=os.getenv("API_URL", "http://localhost:5000"),
         help="Flask 백엔드 API 주소"
     )
     
@@ -419,6 +420,5 @@ st.markdown(
     "</div>",
     unsafe_allow_html=True
 )
-
 
 

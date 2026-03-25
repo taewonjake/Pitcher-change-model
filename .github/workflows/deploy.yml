@@ -1,0 +1,62 @@
+name: Deploy To EC2
+
+on:
+  push:
+    branches: ["main", "master"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/bullpen-backend:latest
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/bullpen-frontend:latest
+
+      - name: Copy deployment files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.prod.yml,deploy"
+          target: "/home/${{ secrets.EC2_USER }}/bullpen-deploy"
+          overwrite: true
+
+      - name: Run deployment on EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd /home/${{ secrets.EC2_USER }}/bullpen-deploy
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans

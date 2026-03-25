@@ -1,0 +1,43 @@
+name: bullpen-prod
+
+services:
+  backend:
+    image: ${DOCKERHUB_USERNAME}/bullpen-backend:latest
+    restart: always
+    env_file:
+      - .env
+    expose:
+      - "5000"
+
+  frontend:
+    image: ${DOCKERHUB_USERNAME}/bullpen-frontend:latest
+    restart: always
+    environment:
+      API_URL: http://backend:5000
+    depends_on:
+      - backend
+    expose:
+      - "8501"
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: always
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/certbot/www:/var/www/certbot
+      - ./deploy/certbot/conf:/etc/letsencrypt
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: always
+    volumes:
+      - ./deploy/certbot/www:/var/www/certbot
+      - ./deploy/certbot/conf:/etc/letsencrypt
+    entrypoint: /bin/sh -c
+    command: "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done;"
