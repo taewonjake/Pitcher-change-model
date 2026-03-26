@@ -12,6 +12,7 @@ if str(BASE_DIR) not in sys.path:
 
 from data_sources.thesportsdb_client import TheSportsDBClient
 from data_sources.kbodata_client import KBODataClient
+from services.cloud_runtime import CloudRuntime
 from services.bullpen import build_bullpen_snapshot, recommend_pitchers
 
 MODEL_DIR = BASE_DIR / "model"
@@ -25,6 +26,7 @@ rf_model = None
 lstm_model = None
 sports_client = TheSportsDBClient()
 kbo_data_client = KBODataClient()
+cloud_runtime = CloudRuntime()
 
 
 def load_models():
@@ -272,15 +274,17 @@ def predict():
         else:
             label = "유지 가능"
 
-        return jsonify(
-            {
-                "rf_prob": round(float(rf_prob), 4),
-                "lstm_prob": round(float(lstm_prob), 4),
-                "final_prob": round(float(ensemble_prob), 4),
-                "recommendation": label,
-                "status": "success",
-            }
-        )
+        response_payload = {
+            "rf_prob": round(float(rf_prob), 4),
+            "lstm_prob": round(float(lstm_prob), 4),
+            "final_prob": round(float(ensemble_prob), 4),
+            "recommendation": label,
+            "status": "success",
+        }
+        # Best-effort persistence for portfolio observability (RDS/S3).
+        cloud_runtime.save_prediction(request_payload=data, response_payload=response_payload)
+
+        return jsonify(response_payload)
 
     except Exception as e:
         return jsonify({"error": str(e), "status": "error"}), 500
@@ -288,13 +292,32 @@ def predict():
 
 @app.route("/health", methods=["GET"])
 def health():
+    infra_status = cloud_runtime.status()
     return jsonify(
         {
             "status": "healthy",
             "rf_model_loaded": rf_model is not None,
             "lstm_model_loaded": lstm_model is not None,
+            "cloudfront_domain": infra_status.get("cloudfront_domain", ""),
+            "rds_ready": infra_status.get("rds", {}).get("ready", False),
+            "s3_ready": infra_status.get("s3", {}).get("ready", False),
         }
     )
+
+
+@app.route("/infra/status", methods=["GET"])
+def infra_status():
+    return jsonify({"status": "success", "infra": cloud_runtime.status()})
+
+
+@app.route("/infra/predictions", methods=["GET"])
+def infra_predictions():
+    try:
+        limit = int(request.args.get("limit", 20))
+    except ValueError:
+        limit = 20
+    items = cloud_runtime.recent_predictions(limit=limit)
+    return jsonify({"status": "success", "count": len(items), "items": items})
 
 
 @app.route("/teams", methods=["GET"])

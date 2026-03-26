@@ -57,7 +57,20 @@ jobs:
           script: |
             set -e
             cd /home/${{ secrets.EC2_USER }}/bullpen-deploy
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+            cat > .env <<EOF
+            DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            AWS_REGION=${{ secrets.AWS_REGION }}
+            AWS_DEFAULT_REGION=${{ secrets.AWS_REGION }}
+            SSM_ENABLED=${{ secrets.SSM_ENABLED }}
+            SSM_PARAMETER_PATH=${{ secrets.SSM_PARAMETER_PATH }}
+            SSM_PARAMETER_NAMES=${{ secrets.SSM_PARAMETER_NAMES }}
+            SSM_WITH_DECRYPTION=${{ secrets.SSM_WITH_DECRYPTION }}
+            SSM_OVERRIDE_ENV=${{ secrets.SSM_OVERRIDE_ENV }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+            S3_PREDICTION_PREFIX=${{ secrets.S3_PREDICTION_PREFIX }}
+            CLOUDFRONT_DOMAIN=${{ secrets.CLOUDFRONT_DOMAIN }}
+            EOF
             if docker compose version >/dev/null 2>&1; then
               COMPOSE_CMD="docker compose"
             elif docker-compose --version >/dev/null 2>&1; then
@@ -66,5 +79,8 @@ jobs:
               echo "Docker Compose is not installed on EC2."
               exit 1
             fi
+            docker container prune -f || true
+            docker image prune -af || true
+            docker volume prune -f || true
             $COMPOSE_CMD -f docker-compose.prod.yml pull
             $COMPOSE_CMD -f docker-compose.prod.yml up -d --remove-orphans

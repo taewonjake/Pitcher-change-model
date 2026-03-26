@@ -9,8 +9,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt /app/backend/requirements.txt
-RUN pip install --no-cache-dir -r /app/backend/requirements.txt \
+COPY backend/requirements.prod.txt /app/backend/requirements.prod.txt
+RUN pip install --no-cache-dir -r /app/backend/requirements.prod.txt \
     && pip install --no-cache-dir gunicorn
 
 COPY backend /app/backend
