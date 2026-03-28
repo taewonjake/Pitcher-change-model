@@ -13,7 +13,8 @@ st.title("우리 팀 불펜 체력 대시보드")
 st.caption("TheSportsDB 기반 MVP + 로컬 계산 로직")
 
 with st.sidebar:
-    api_url = st.text_input("API URL", value="http://localhost:5000")
+    default_api_url = os.getenv("API_URL", "https://basegram.p-e.kr/api")
+    api_url = st.text_input("API URL", value=default_api_url)
     st.markdown("---")
     inning = st.slider("현재 이닝", 1, 12, 8)
     score_diff = st.slider("점수차(우리팀-상대)", -10, 10, 0)

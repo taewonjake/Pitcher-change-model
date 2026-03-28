@@ -4,6 +4,7 @@ services:
   backend:
     image: ${DOCKERHUB_USERNAME}/bullpen-backend:latest
     restart: always
+    shm_size: "1gb"
     env_file:
       - .env
     expose:

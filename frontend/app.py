@@ -5,15 +5,15 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 
-# 페이지 설정
+# ?�이지 ?�정
 st.set_page_config(
-    page_title="⚾ 투수 교체 예측 시스템",
-    page_icon="⚾",
+    page_title="???�수 교체 ?�측 ?�스??,
+    page_icon="??,
     layout="centered",
     initial_sidebar_state="expanded"
 )
 
-# CSS 스타일링
+# CSS ?��??�링
 st.markdown("""
     <style>
     .main-header {
@@ -45,129 +45,127 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 제목
-st.markdown('<h1 class="main-header">⚾ 투수 교체 예측 시스템 (AI Coach)</h1>', unsafe_allow_html=True)
+# ?�목
+st.markdown('<h1 class="main-header">???�수 교체 ?�측 ?�스??(AI Coach)</h1>', unsafe_allow_html=True)
 st.markdown("---")
 
-# 사이드바 - API 설정
+# ?�이?�바 - API ?�정
 with st.sidebar:
-    st.header("⚙️ 설정")
+    st.header("?�️ ?�정")
     api_url = st.text_input(
         "API URL",
-        value=os.getenv("API_URL", "http://localhost:5000"),
-        help="Flask 백엔드 API 주소"
+        value=os.getenv("API_URL", "https://basegram.p-e.kr/api"),
+        help="Flask 백엔??API 주소"
     )
     
-    if st.button("🔍 API 연결 확인"):
+    if st.button("?�� API ?�결 ?�인"):
         try:
             response = requests.get(f"{api_url}/health", timeout=2)
             if response.status_code == 200:
                 health_data = response.json()
-                st.success("✅ API 연결 성공")
+                st.success("??API ?�결 ?�공")
                 st.json(health_data)
             else:
-                st.error("❌ API 응답 오류")
+                st.error("??API ?�답 ?�류")
         except requests.exceptions.RequestException as e:
-            st.error(f"❌ API 연결 실패: {str(e)}")
-            st.info("백엔드 서버가 실행 중인지 확인하세요.")
+            st.error(f"??API ?�결 ?�패: {str(e)}")
+            st.info("백엔???�버가 ?�행 중인지 ?�인?�세??")
 
-# 메인 입력 폼
-st.header("📝 경기 상황 입력")
+# 메인 ?�력 ??st.header("?�� 경기 ?�황 ?�력")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("투수 상태")
+    st.subheader("?�수 ?�태")
     inning = st.number_input(
-        "이닝",
+        "?�닝",
         min_value=1,
         max_value=9,
         value=6,
-        help="현재 이닝"
+        help="?�재 ?�닝"
     )
     
     pitch_count = st.number_input(
-        "투구 수",
+        "?�구 ??,
         min_value=1,
         max_value=200,
         value=90,
-        help="현재까지의 누적 투구 수"
+        help="?�재까�????�적 ?�구 ??
     )
     
     velocity_drop = st.number_input(
-        "구속 감소량 (km/h)",
+        "구속 감소??(km/h)",
         min_value=0.0,
         max_value=10.0,
         value=2.5,
         step=0.1,
-        help="초반 대비 구속 감소량"
+        help="초반 ?��?구속 감소??
     )
     
     earned_runs = st.number_input(
-        "누적 실점",
+        "?�적 ?�점",
         min_value=0,
         max_value=10,
         value=2,
-        help="현재까지의 누적 실점"
+        help="?�재까�????�적 ?�점"
     )
     
     pitcher_type = st.selectbox(
-        "투수 유형",
-        ["선발투수", "불펜투수"],
-        help="선발투수: 100구/6이닝 기준, 불펜투수: 20구/1이닝 기준"
+        "?�수 ?�형",
+        ["?�발?�수", "불펜?�수"],
+        help="?�발?�수: 100�?6?�닝 기�?, 불펜?�수: 20�?1?�닝 기�?"
     )
     
     pitcher_hand = st.selectbox(
-        "투수 손 방향",
+        "?�수 ??방향",
         ["R", "L"],
-        help="R: 우투, L: 좌투"
+        help="R: ?�투, L: 좌투"
     )
 
 with col2:
-    st.subheader("타자 정보")
+    st.subheader("?�???�보")
     batter_side = st.selectbox(
-        "현재 타자 타석 방향",
+        "?�재 ?�???�??방향",
         ["R", "L", "S"],
-        help="R: 우타, L: 좌타, S: 스위치"
+        help="R: ?��?, L: 좌�?, S: ?�위�?
     )
     
     current_batter_ops = st.slider(
-        "현재 타자 OPS",
+        "?�재 ?�??OPS",
         0.0,
         2.0,
         0.8,
         0.01,
-        help="현재 타자의 OPS (On-base Plus Slugging, 0.0 ~ 2.0)"
+        help="?�재 ?�?�의 OPS (On-base Plus Slugging, 0.0 ~ 2.0)"
     )
     
     st.markdown("---")
     
     next_batter_side = st.selectbox(
-        "다음 타자 타석 방향",
+        "?�음 ?�???�??방향",
         ["R", "L", "S"],
-        help="다음 타자의 타석 방향"
+        help="?�음 ?�?�의 ?�??방향"
     )
     
     next_batter_ops = st.slider(
-        "다음 타자 OPS",
+        "?�음 ?�??OPS",
         0.0,
         2.0,
         0.8,
         0.01,
-        help="다음 타자의 OPS (On-base Plus Slugging, 0.0 ~ 2.0)"
+        help="?�음 ?�?�의 OPS (On-base Plus Slugging, 0.0 ~ 2.0)"
     )
 
 st.markdown("---")
 
-# 예측 버튼
-if st.button("🎯 예측하기", type="primary", use_container_width=True):
-    # 입력 데이터 검증
-    if api_url == "":
-        st.error("❌ API URL을 입력해주세요.")
+# ?�측 버튼
+if st.button("?�� ?�측?�기", type="primary", use_container_width=True):
+    # ?�력 ?�이??검�?    if api_url == "":
+        st.error("??API URL???�력?�주?�요.")
     else:
-        with st.spinner("🤖 AI 코치가 판단 중..."):
+        with st.spinner("?�� AI 코치가 ?�단 �?.."):
             try:
-                # API 호출
+                # API ?�출
                 payload = {
                     "inning": int(inning),
                     "pitch_count": int(pitch_count),
@@ -191,20 +189,19 @@ if st.button("🎯 예측하기", type="primary", use_container_width=True):
                     res = response.json()
                     
                     if res.get("status") == "error":
-                        st.error(f"❌ 오류: {res.get('error', 'Unknown error')}")
+                        st.error(f"???�류: {res.get('error', 'Unknown error')}")
                     else:
-                        # 결과 표시
+                        # 결과 ?�시
                         st.markdown("---")
-                        st.header("📊 예측 결과")
+                        st.header("?�� ?�측 결과")
                         
-                        # 메인 메트릭
-                        final_prob = res["final_prob"]
+                        # 메인 메트�?                        final_prob = res["final_prob"]
                         recommendation = res["recommendation"]
                         
-                        # 최종 확률을 큰 카드로 표시
-                        st.markdown("### 🎯 최종 예측 결과")
+                        # 최종 ?�률????카드�??�시
+                        st.markdown("### ?�� 최종 ?�측 결과")
                         
-                        # 확률에 따른 색상 결정 (50% 이상이면 교체 권장)
+                        # ?�률???�른 ?�상 결정 (50% ?�상?�면 교체 권장)
                         if final_prob >= 0.5:
                             color = "#ef4444"  # 빨강
                             bg_color = "#fee2e2"
@@ -212,10 +209,10 @@ if st.button("🎯 예측하기", type="primary", use_container_width=True):
                             color = "#f59e0b"  # 주황
                             bg_color = "#fef3c7"
                         else:
-                            color = "#10b981"  # 녹색
+                            color = "#10b981"  # ?�색
                             bg_color = "#d1fae5"
                         
-                        # 큰 메트릭 카드
+                        # ??메트�?카드
                         st.markdown(
                             f"""
                             <div style='background-color: {bg_color}; padding: 2rem; border-radius: 15px; 
@@ -224,20 +221,20 @@ if st.button("🎯 예측하기", type="primary", use_container_width=True):
                                     {final_prob*100:.1f}%
                                 </h2>
                                 <p style='text-align: center; font-size: 1.2rem; color: #666; margin-top: 0.5rem;'>
-                                    교체 권장 확률
+                                    교체 권장 ?�률
                                 </p>
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
                         
-                        # 권장 사항 박스
+                        # 권장 ?�항 박스
                         if recommendation == "교체 권장":
                             st.markdown(
                                 f"""
                                 <div class='recommendation-box' style='background-color: #fee2e2; color: #991b1b; 
                                     border: 2px solid #ef4444;'>
-                                    ⚠️ {recommendation}
+                                    ?�️ {recommendation}
                                 </div>
                                 """,
                                 unsafe_allow_html=True
@@ -247,84 +244,84 @@ if st.button("🎯 예측하기", type="primary", use_container_width=True):
                                 f"""
                                 <div class='recommendation-box' style='background-color: #d1fae5; color: #065f46; 
                                     border: 2px solid #10b981;'>
-                                    ✅ {recommendation}
+                                    ??{recommendation}
                                 </div>
                                 """,
                                 unsafe_allow_html=True
                             )
                         
-                        # 결과 설명 생성
-                        st.markdown("### 💡 판단 근거")
+                        # 결과 ?�명 ?�성
+                        st.markdown("### ?�� ?�단 근거")
                         explanation_parts = []
                         
-                        # 투수 유형별 피로도 기준
-                        is_starter = pitcher_type == "선발투수"
+                        # ?�수 ?�형�??�로??기�?
+                        is_starter = pitcher_type == "?�발?�수"
                         pitch_threshold = 100 if is_starter else 20
                         inning_threshold = 6 if is_starter else 1
-                        pitcher_type_kr = "선발투수" if is_starter else "불펜투수"
+                        pitcher_type_kr = "?�발?�수" if is_starter else "불펜?�수"
                         
-                        # 투구 수 분석 (투수 유형별)
+                        # ?�구 ??분석 (?�수 ?�형�?
                         if pitch_count >= pitch_threshold:
-                            explanation_parts.append(f"• {pitcher_type_kr} 기준으로 투구 수가 {pitch_count}개({pitch_threshold}개 기준)로 많아 피로도가 높을 가능성이 있습니다.")
+                            explanation_parts.append(f"??{pitcher_type_kr} 기�??�로 ?�구 ?��? {pitch_count}�?{pitch_threshold}�?기�?)�?많아 ?�로?��? ?�을 가?�성???�습?�다.")
                         elif pitch_count >= pitch_threshold * 0.8:
-                            explanation_parts.append(f"• {pitcher_type_kr} 기준으로 투구 수가 {pitch_count}개로 적당하지만 주의가 필요합니다.")
+                            explanation_parts.append(f"??{pitcher_type_kr} 기�??�로 ?�구 ?��? {pitch_count}개로 ?�당?��?�?주의가 ?�요?�니??")
                         else:
-                            explanation_parts.append(f"• {pitcher_type_kr} 기준으로 투구 수가 {pitch_count}개로 아직 여유가 있습니다.")
+                            explanation_parts.append(f"??{pitcher_type_kr} 기�??�로 ?�구 ?��? {pitch_count}개로 ?�직 ?�유가 ?�습?�다.")
                         
-                        # 이닝 분석 (투수 유형별)
+                        # ?�닝 분석 (?�수 ?�형�?
                         if inning > inning_threshold:
-                            explanation_parts.append(f"• {pitcher_type_kr} 기준으로 {inning}이닝({inning_threshold}이닝 초과)으로 피로도가 높을 수 있어 교체 타이밍을 고려해야 합니다.")
+                            explanation_parts.append(f"??{pitcher_type_kr} 기�??�로 {inning}?�닝({inning_threshold}?�닝 초과)?�로 ?�로?��? ?�을 ???�어 교체 ?�?�밍??고려?�야 ?�니??")
                         elif inning == inning_threshold:
-                            explanation_parts.append(f"• {pitcher_type_kr} 기준으로 {inning}이닝으로 주의가 필요합니다.")
+                            explanation_parts.append(f"??{pitcher_type_kr} 기�??�로 {inning}?�닝?�로 주의가 ?�요?�니??")
                         else:
-                            explanation_parts.append(f"• {pitcher_type_kr} 기준으로 {inning}이닝으로 아직 여유가 있습니다.")
+                            explanation_parts.append(f"??{pitcher_type_kr} 기�??�로 {inning}?�닝?�로 ?�직 ?�유가 ?�습?�다.")
                         
-                        # 구속 감소 분석 (0.8km/h부터 이상)
+                        # 구속 감소 분석 (0.8km/h부???�상)
                         if velocity_drop >= 0.8:
-                            explanation_parts.append(f"• 구속이 {velocity_drop}km/h 감소하여 투구력 저하가 우려됩니다.")
+                            explanation_parts.append(f"??구속??{velocity_drop}km/h 감소?�여 ?�구???�?��? ?�려?�니??")
                         elif velocity_drop >= 0.5:
-                            explanation_parts.append(f"• 구속이 {velocity_drop}km/h 감소하여 주의가 필요합니다.")
+                            explanation_parts.append(f"??구속??{velocity_drop}km/h 감소?�여 주의가 ?�요?�니??")
                         else:
-                            explanation_parts.append(f"• 구속 감소가 {velocity_drop}km/h로 크지 않습니다.")
+                            explanation_parts.append(f"??구속 감소가 {velocity_drop}km/h�??��? ?�습?�다.")
                         
-                        # 실점 분석 (불펜투수는 1실점부터 교체 확률 증가)
+                        # ?�점 분석 (불펜?�수??1?�점부??교체 ?�률 증�?)
                         if is_starter:
-                            # 선발투수 기준
+                            # ?�발?�수 기�?
                             if earned_runs > 4:
-                                explanation_parts.append(f"• 누적 실점이 {earned_runs}점으로 많아 교체를 고려해야 합니다.")
+                                explanation_parts.append(f"???�적 ?�점??{earned_runs}?�으�?많아 교체�?고려?�야 ?�니??")
                             elif earned_runs > 2:
-                                explanation_parts.append(f"• 누적 실점이 {earned_runs}점으로 주의가 필요합니다.")
+                                explanation_parts.append(f"???�적 ?�점??{earned_runs}?�으�?주의가 ?�요?�니??")
                             else:
-                                explanation_parts.append(f"• 누적 실점이 {earned_runs}점으로 양호합니다.")
+                                explanation_parts.append(f"???�적 ?�점??{earned_runs}?�으�??�호?�니??")
                         else:
-                            # 불펜투수 기준 (1실점부터 교체 확률 증가)
+                            # 불펜?�수 기�? (1?�점부??교체 ?�률 증�?)
                             if earned_runs >= 1:
-                                explanation_parts.append(f"• 불펜투수 기준으로 누적 실점이 {earned_runs}점으로 교체를 고려해야 합니다.")
+                                explanation_parts.append(f"??불펜?�수 기�??�로 ?�적 ?�점??{earned_runs}?�으�?교체�?고려?�야 ?�니??")
                             else:
-                                explanation_parts.append(f"• 누적 실점이 {earned_runs}점으로 양호합니다.")
+                                explanation_parts.append(f"???�적 ?�점??{earned_runs}?�으�??�호?�니??")
                         
-                        # 현재 타자 분석
+                        # ?�재 ?�??분석
                         if current_batter_ops > 0.9:
-                            explanation_parts.append(f"• 현재 타자의 OPS가 {current_batter_ops:.2f}로 높아 주의가 필요합니다.")
+                            explanation_parts.append(f"???�재 ?�?�의 OPS가 {current_batter_ops:.2f}�??�아 주의가 ?�요?�니??")
                         else:
-                            explanation_parts.append(f"• 현재 타자의 OPS가 {current_batter_ops:.2f}로 상대하기 수월합니다.")
+                            explanation_parts.append(f"???�재 ?�?�의 OPS가 {current_batter_ops:.2f}�??��??�기 ?�월?�니??")
                         
-                        # 다음 타자 분석
+                        # ?�음 ?�??분석
                         if next_batter_ops > 0.9:
-                            explanation_parts.append(f"• 다음 타자의 OPS가 {next_batter_ops:.2f}로 높아 미리 교체를 고려할 수 있습니다.")
+                            explanation_parts.append(f"???�음 ?�?�의 OPS가 {next_batter_ops:.2f}�??�아 미리 교체�?고려?????�습?�다.")
                         else:
-                            explanation_parts.append(f"• 다음 타자의 OPS가 {next_batter_ops:.2f}로 상대하기 수월합니다.")
+                            explanation_parts.append(f"???�음 ?�?�의 OPS가 {next_batter_ops:.2f}�??��??�기 ?�월?�니??")
                         
-                        # 좌우 매치업 분석 (같은 손=투수 유리, 다른 손=타자 유리)
-                        matchup_info = f"{pitcher_hand}투 vs {batter_side}타"
-                        # 같은 손 (R-R, L-L) → 투수 유리
-                        # 다른 손 (R-L, L-R) → 타자 유리
+                        # 좌우 매치??분석 (같�? ???�수 ?�리, ?�른 ???�???�리)
+                        matchup_info = f"{pitcher_hand}??vs {batter_side}?�"
+                        # 같�? ??(R-R, L-L) ???�수 ?�리
+                        # ?�른 ??(R-L, L-R) ???�???�리
                         if (pitcher_hand == "L" and batter_side == "L") or (pitcher_hand == "R" and batter_side == "R"):
-                            explanation_parts.append(f"• 현재 매치업({matchup_info})은 투수에게 유리합니다.")
+                            explanation_parts.append(f"???�재 매치??{matchup_info})?� ?�수?�게 ?�리?�니??")
                         else:
-                            explanation_parts.append(f"• 현재 매치업({matchup_info})은 타자에게 유리합니다.")
+                            explanation_parts.append(f"???�재 매치??{matchup_info})?� ?�?�에�??�리?�니??")
                         
-                        # 설명 표시 (각 항목을 별도 줄로 표시)
+                        # ?�명 ?�시 (�???��??별도 줄로 ?�시)
                         explanation_html = "<div style='background-color: #e8f4f8; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #1f77b4; color: #1e293b;'>"
                         for part in explanation_parts:
                             explanation_html += f"<p style='margin: 0.5rem 0; color: #1e293b;'>{part}</p>"
@@ -332,14 +329,14 @@ if st.button("🎯 예측하기", type="primary", use_container_width=True):
                         st.markdown(explanation_html, unsafe_allow_html=True)
                         
                         # 게이지 차트
-                        st.subheader("📈 교체 확률 시각화")
+                        st.subheader("?�� 교체 ?�률 ?�각??)
                         
                         fig_gauge = go.Figure(go.Indicator(
                             mode="gauge+number+delta",
                             value=final_prob * 100,
                             domain={'x': [0, 1], 'y': [0, 1]},
                             title={
-                                'text': "교체 권장 확률 (%)",
+                                'text': "교체 권장 ?�률 (%)",
                                 'font': {'size': 24}
                             },
                             delta={'reference': 50},
@@ -365,12 +362,12 @@ if st.button("🎯 예측하기", type="primary", use_container_width=True):
                         
                         st.plotly_chart(fig_gauge, use_container_width=True)
                         
-                        # 모델별 확률 비교 바 차트
-                        st.subheader("📊 모델별 예측 비교")
+                        # 모델�??�률 비교 �?차트
+                        st.subheader("?�� 모델�??�측 비교")
                         
                         model_data = pd.DataFrame({
-                            "모델": ["RandomForest", "LSTM", "앙상블 (최종)"],
-                            "교체 확률 (%)": [
+                            "모델": ["RandomForest", "LSTM", "?�상�?(최종)"],
+                            "교체 ?�률 (%)": [
                                 res["rf_prob"] * 100,
                                 res["lstm_prob"] * 100,
                                 res["final_prob"] * 100
@@ -380,11 +377,11 @@ if st.button("🎯 예측하기", type="primary", use_container_width=True):
                         fig_bar = px.bar(
                             model_data,
                             x="모델",
-                            y="교체 확률 (%)",
-                            color="교체 확률 (%)",
+                            y="교체 ?�률 (%)",
+                            color="교체 ?�률 (%)",
                             color_continuous_scale=["green", "yellow", "red"],
-                            text="교체 확률 (%)",
-                            title="모델별 교체 확률 비교"
+                            text="교체 ?�률 (%)",
+                            title="모델�?교체 ?�률 비교"
                         )
                         fig_bar.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
                         fig_bar.update_layout(
@@ -395,12 +392,12 @@ if st.button("🎯 예측하기", type="primary", use_container_width=True):
                         
                         st.plotly_chart(fig_bar, use_container_width=True)
                         
-                        # 입력 요약
-                        with st.expander("📋 입력 요약 보기"):
+                        # ?�력 ?�약
+                        with st.expander("?�� ?�력 ?�약 보기"):
                             st.json(payload)
                 
                 else:
-                    st.error(f"❌ API 오류 (상태 코드: {response.status_code})")
+                    st.error(f"??API ?�류 (?�태 코드: {response.status_code})")
                     try:
                         error_data = response.json()
                         st.json(error_data)
@@ -408,17 +405,18 @@ if st.button("🎯 예측하기", type="primary", use_container_width=True):
                         st.text(response.text)
             
             except requests.exceptions.RequestException as e:
-                st.error(f"❌ API 연결 실패: {str(e)}")
-                st.info("백엔드 서버가 실행 중인지 확인하세요.")
+                st.error(f"??API ?�결 ?�패: {str(e)}")
+                st.info("백엔???�버가 ?�행 중인지 ?�인?�세??")
                 st.code("cd backend\npython api/app.py", language="bash")
 
-# 푸터
+# ?�터
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: gray; padding: 1rem;'>"
-    "⚾ 투수 교체 예측 시스템 | AI Coach | Powered by RandomForest & LSTM"
+    "???�수 교체 ?�측 ?�스??| AI Coach | Powered by RandomForest & LSTM"
     "</div>",
     unsafe_allow_html=True
 )
+
 
 
