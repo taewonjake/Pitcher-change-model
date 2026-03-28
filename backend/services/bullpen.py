@@ -81,6 +81,9 @@ def _build_pitchers(team_name: str, pitcher_names: List[str] | None = None) -> L
     seed = _stable_seed(team_name)
     rng = random.Random(seed)
     names = _normalize_pitcher_names(pitcher_names or [])
+    if not names:
+        # Fallback roster for production resilience when external roster crawling is disabled/unavailable.
+        names = [f"{team_name} Pitcher {i}" for i in range(1, 9)]
 
     pitchers = []
     for idx, pitcher_name in enumerate(names):

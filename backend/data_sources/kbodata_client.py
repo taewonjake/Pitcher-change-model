@@ -31,6 +31,7 @@ class KBODataClient:
 
     def __init__(self, chromedriver_path: str | None = None) -> None:
         self.chromedriver_path = chromedriver_path or os.getenv("KBO_CHROMEDRIVER_PATH", "").strip()
+        self.roster_enabled = str(os.getenv("KBO_ROSTER_ENABLED", "false")).strip().lower() in {"1", "true", "yes", "on"}
         self.fetch_timeout_sec = int(os.getenv("KBO_ROSTER_TIMEOUT_SEC", "20"))
         self.scan_limit_sec = int(os.getenv("KBO_ROSTER_SCAN_LIMIT_SEC", "10"))
         self.cache_ttl_sec = int(os.getenv("KBO_ROSTER_CACHE_TTL_SEC", "1800"))
@@ -38,6 +39,9 @@ class KBODataClient:
         self._league_cache: Dict[str, Any] | None = None
 
     def get_team_pitcher_names(self, team_name: str) -> Dict[str, Any]:
+        if not self.roster_enabled:
+            return {"source": "disabled", "pitcher_names": [], "reason": "roster_feature_disabled"}
+
         team_key = team_name.lower().strip()
         cached = self._team_cache.get(team_key)
         now_ts = time.monotonic()

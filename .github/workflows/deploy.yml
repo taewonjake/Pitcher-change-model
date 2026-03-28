@@ -66,6 +66,7 @@ jobs:
             SSM_PARAMETER_NAMES=${{ secrets.SSM_PARAMETER_NAMES }}
             SSM_WITH_DECRYPTION=${{ secrets.SSM_WITH_DECRYPTION }}
             SSM_OVERRIDE_ENV=${{ secrets.SSM_OVERRIDE_ENV }}
+            KBO_ROSTER_ENABLED=${{ secrets.KBO_ROSTER_ENABLED }}
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
             S3_PREDICTION_PREFIX=${{ secrets.S3_PREDICTION_PREFIX }}

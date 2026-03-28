@@ -365,6 +365,7 @@ def bullpen_status():
                     "roster_source": roster_payload.get("source", "error"),
                     "roster_count": len(roster_names),
                     "roster_reason": roster_payload.get("reason", "unknown"),
+                    "roster_fallback": roster_payload.get("source") != "kbodata",
                 },
             }
         )
@@ -380,20 +381,8 @@ def bullpen_pitchers():
     events = sports_client.get_recent_events(team_id) if source == "thesportsdb" else []
     roster_payload = kbo_data_client.get_team_pitcher_names(team_name)
     roster_names = roster_payload.get("pitcher_names", [])
-    if roster_payload.get("source") != "kbodata" or not roster_names:
-        return jsonify(
-            {
-                "status": "error",
-                "error_code": "ROSTER_UNAVAILABLE",
-                "error": "Roster data is unavailable for this team right now.",
-                "team": team_name,
-                "team_id": team_id,
-                "source": source,
-                "roster_source": roster_payload.get("source", "error"),
-                "roster_count": len(roster_names),
-                "roster_reason": roster_payload.get("reason", "unknown"),
-            }
-        ), 503
+    if roster_payload.get("source") != "kbodata":
+        roster_names = []
 
     snapshot = build_bullpen_snapshot(
         team_name,
@@ -416,6 +405,7 @@ def bullpen_pitchers():
             "roster_source": roster_payload.get("source", "fallback"),
             "roster_count": len(roster_payload.get("pitcher_names", [])),
             "roster_reason": roster_payload.get("reason", "unknown"),
+            "roster_fallback": roster_payload.get("source") != "kbodata",
         }
     )
 
@@ -437,20 +427,8 @@ def bullpen_recommend():
         events = sports_client.get_recent_events(team_id) if source == "thesportsdb" else []
         roster_payload = kbo_data_client.get_team_pitcher_names(team_name)
         roster_names = roster_payload.get("pitcher_names", [])
-        if roster_payload.get("source") != "kbodata" or not roster_names:
-            return jsonify(
-                {
-                    "status": "error",
-                    "error_code": "ROSTER_UNAVAILABLE",
-                    "error": "Roster data is unavailable for recommendation.",
-                    "team": team_name,
-                    "team_id": team_id,
-                    "source": source,
-                    "roster_source": roster_payload.get("source", "error"),
-                    "roster_count": len(roster_names),
-                    "roster_reason": roster_payload.get("reason", "unknown"),
-                }
-            ), 503
+        if roster_payload.get("source") != "kbodata":
+            roster_names = []
 
         snapshot = build_bullpen_snapshot(
             team_name,
@@ -487,6 +465,7 @@ def bullpen_recommend():
                     "roster_source": roster_payload.get("source", "fallback"),
                     "roster_count": len(roster_payload.get("pitcher_names", [])),
                     "roster_reason": roster_payload.get("reason", "unknown"),
+                    "roster_fallback": roster_payload.get("source") != "kbodata",
                 },
                 "recommendations": picks,
                 "reasons": reasons,
