@@ -2,11 +2,17 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV CHROME_BIN=/usr/bin/chromium
+ENV KBO_CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential \
+    && apt-get install -y --no-install-recommends \
+       build-essential \
+       chromium \
+       chromium-driver \
+       ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.prod.txt /app/backend/requirements.prod.txt

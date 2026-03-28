@@ -72,6 +72,15 @@ class KBODataClient:
         if explicit_path:
             return explicit_path, "explicit_path"
 
+        # Prefer preinstalled system chromedriver in Linux containers.
+        system_candidates = [
+            "/usr/bin/chromedriver",
+            "/usr/local/bin/chromedriver",
+        ]
+        for candidate in system_candidates:
+            if Path(candidate).exists():
+                return candidate, "system_chromedriver"
+
         # Prefer existing local webdriver-manager cache to avoid network dependency.
         cached = _find_cached_chromedriver()
         if cached:
@@ -238,5 +247,9 @@ def _find_cached_chromedriver() -> str | None:
     base = Path.home() / ".wdm" / "drivers" / "chromedriver"
     if not base.exists():
         return None
-    candidates = sorted(base.rglob("chromedriver.exe"), key=lambda p: p.stat().st_mtime, reverse=True)
+    candidates = sorted(
+        [*base.rglob("chromedriver.exe"), *base.rglob("chromedriver")],
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
     return str(candidates[0]) if candidates else None
