@@ -9,17 +9,27 @@ fi
 DOMAIN="$1"
 EMAIL="$2"
 
-docker compose -f docker-compose.prod.yml up -d nginx certbot backend frontend
+if docker compose version >/dev/null 2>&1; then
+  compose() { docker compose -f docker-compose.prod.yml "$@"; }
+elif docker-compose --version >/dev/null 2>&1; then
+  compose() { docker-compose -f docker-compose.prod.yml "$@"; }
+else
+  echo "Docker Compose is not installed."
+  exit 1
+fi
 
-docker compose -f docker-compose.prod.yml run --rm certbot certonly \
+compose up -d nginx certbot backend frontend
+
+compose run --rm --entrypoint certbot certbot certonly \
   --webroot -w /var/www/certbot \
   -d "${DOMAIN}" -d "www.${DOMAIN}" \
   --email "${EMAIL}" \
   --agree-tos \
-  --no-eff-email
+  --no-eff-email \
+  --keep-until-expiring
 
 sed "s/YOUR_DOMAIN/${DOMAIN}/g" deploy/nginx/nginx.https.conf > deploy/nginx/nginx.conf
 
-docker compose -f docker-compose.prod.yml restart nginx
+compose restart nginx
 
 echo "HTTPS enabled for ${DOMAIN}"

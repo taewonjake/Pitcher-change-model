@@ -84,3 +84,13 @@ jobs:
             docker volume prune -f || true
             $COMPOSE_CMD -f docker-compose.prod.yml pull
             $COMPOSE_CMD -f docker-compose.prod.yml up -d --remove-orphans
+
+            # Optional: keep HTTPS config/certs in sync on every deploy.
+            if [ -n "${{ secrets.HTTPS_DOMAIN }}" ] && [ -n "${{ secrets.HTTPS_EMAIL }}" ]; then
+              chmod +x deploy/scripts/enable-https.sh
+              if ! ./deploy/scripts/enable-https.sh "${{ secrets.HTTPS_DOMAIN }}" "${{ secrets.HTTPS_EMAIL }}"; then
+                echo "HTTPS automation failed; deployment will continue with current containers."
+              fi
+            else
+              echo "HTTPS_DOMAIN/HTTPS_EMAIL not set; skipping HTTPS automation."
+            fi
