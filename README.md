@@ -1,454 +1,163 @@
-# ⚾ 투수 교체 예측 시스템 (Streamlit Edition)
-
-투수 교체 타이밍을 데이터로 예측하는 AI 프로젝트입니다.
-
-경기 상황(이닝, 투구 수, 구속 하락, 실점, 구종, 투수 손, 타자 타석 방향 등)을 입력하면 교체 권장 확률과 주요 요인을 시각화하여 보여주는 시스템입니다.
-
-## 🎯 주요 기능
-
-- **AI 기반 예측**: RandomForest와 LSTM 모델을 앙상블하여 투수 교체 시점 예측
-- **실시간 대시보드**: Streamlit 기반 사용자 친화적 인터페이스
-- **시각화**: 교체 확률 게이지 차트 및 모델별 비교 차트
-- **RESTful API**: Flask 기반 백엔드 API
-
-## 📁 프로젝트 구조
-
-```
-.
-├── backend/
-│   ├── api/
-│   │   └── app.py              # Flask API 서버
-│   ├── model/
-│   │   ├── rf_pitch_model.pkl  # RandomForest 모델
-│   │   └── lstm_pitch_model.h5 # LSTM 모델
-│   ├── data/
-│   │   └── train_pitch_replacement.csv  # 학습 데이터
-│   ├── train_models.py         # 모델 학습 스크립트
-│   ├── download_kaggle_data.py # Kaggle 데이터 다운로드
-│   └── requirements.txt        # 백엔드 의존성
-├── frontend/
-│   ├── app.py                  # Streamlit 대시보드
-│   └── requirements.txt        # 프론트엔드 의존성
-└── README.md
-```
-
-## 🚀 설치 및 실행
-
-### 1. 저장소 클론 및 디렉토리 이동
-
-```bash
-cd "E:\datasci fin pro base"
-```
-
-### 2. 백엔드 설정
-
-#### 방법 1: 일반 설치 (문제 없을 때)
-
-```bash
-cd backend
-
-# Windows PowerShell/CMD에서 (권장)
-python -m pip install -r requirements.txt
-# 또는
-py -m pip install -r requirements.txt
-
-# Linux/Mac 또는 pip가 PATH에 있는 경우
-pip install -r requirements.txt
-```
-
-#### 방법 2: 문제 해결 설치 (pandas 설치 오류 시)
-
-**PowerShell 사용:**
-```powershell
-cd backend
-. .\install_requirements.ps1
-```
-
-**CMD 사용:**
-```cmd
-cd backend
-install_requirements_simple.bat
-```
-
-**또는 수동으로 순차 설치:**
-```bash
-cd backend
-
-# 1. pip 및 빌드 도구 업그레이드
-python -m pip install --upgrade pip setuptools wheel
-
-# 2. 기본 패키지 먼저 설치
-python -m pip install numpy
-python -m pip install pandas
-python -m pip install scikit-learn
-
-# 3. 나머지 패키지 설치
-python -m pip install flask flask-cors tensorflow joblib
-python -m pip install "kagglehub[pandas-datasets]"
-```
-
-**참고**: 
-- Windows에서 `pip` 명령이 인식되지 않으면 `python -m pip` 또는 `py -m pip`를 사용하세요.
-- `metadata-generation-failed` 오류가 발생하면 방법 2를 사용하세요.
-- **Python 3.13 사용 시**: pandas 2.2.0 이상이 필요합니다 (이미 requirements.txt에 반영됨).
-- **Python 버전 확인**: `python --version`으로 확인하세요.
-- Python 3.13은 매우 최신 버전이므로, 일부 패키지 호환성 문제가 있을 수 있습니다. Python 3.11 또는 3.12 사용을 권장합니다.
-
-### 3. 데이터 준비 및 모델 학습 (선택사항)
-
-#### 방법 1: 자동 다운로드 (kagglehub 사용 - 권장)
-
-```bash
-# kagglehub 설치 (API 토큰 설정 불필요!)
-python -m pip install kagglehub[pandas-datasets]
-# 또는: py -m pip install kagglehub[pandas-datasets]
-
-# 데이터 자동 다운로드
-python download_kaggle_data.py
-
-# 모델 학습
-python train_models.py
-```
-
-**장점**: API 토큰 설정이 필요 없어서 가장 간단합니다!
-
-#### 방법 1-2: 자동 다운로드 (기존 Kaggle API 사용)
-
-```bash
-# Kaggle API 설치
-python -m pip install kaggle
-# 또는: py -m pip install kaggle
-
-# Kaggle API 토큰 설정
-# 1. https://www.kaggle.com/account 접속
-# 2. API 토큰 다운로드 (kaggle.json)
-# 3. Windows: C:\Users\[사용자명]\.kaggle\kaggle.json 에 저장
-
-# 데이터 자동 다운로드
-python download_kaggle_data.py
-
-# 모델 학습
-python train_models.py
-```
-
-#### 방법 2: 수동 다운로드
-
-```bash
-# 1. https://www.kaggle.com/datasets/pschale/mlb-pitch-data-20152018 에서 데이터 다운로드
-# 2. 다운로드한 파일을 backend/data/ 폴더에 넣기
-# 3. 데이터 전처리 실행
-python download_kaggle_data.py
-
-# 모델 학습
-python train_models.py
-```
-
-#### 방법 3: 합성 데이터 사용 (가장 간단)
-
-```bash
-# 합성 데이터로 모델 학습 (Kaggle 데이터 불필요)
-python train_models.py
-```
-
-**참고**: 
-- 모델 파일이 없어도 더미 모델로 동작합니다
-- 실제 예측 정확도를 높이려면 실제 Kaggle 데이터로 학습하는 것을 권장합니다
-- 합성 데이터로도 기본적인 예측 기능은 사용 가능합니다
-
-### 4. 백엔드 서버 실행
-
-```bash
-.\.venv\Scripts\python.exe .\backend\api\app.py
-python api/app.py
-```
-
-백엔드 서버가 `http://localhost:5000`에서 실행됩니다.
-
-### 5. 프론트엔드 설정 및 실행
-
-새 터미널에서:
-
-```bash
-.\.venv\Scripts\python.exe -m streamlit run .\frontend\app.py
-cd frontend
-
-# Windows PowerShell/CMD에서 (권장)
-python -m pip install -r requirements.txt
-# 또는
-py -m pip install -r requirements.txt
-
-# Linux/Mac 또는 pip가 PATH에 있는 경우
-pip install -r requirements.txt
-
-# Streamlit 실행
-streamlit run app.py
-# 또는
-python -m streamlit run app.py
-```
-
-프론트엔드가 `http://localhost:8501`에서 실행됩니다.
-
-## 📊 사용 방법
-
-1. **백엔드 서버 실행 확인**
-   - `http://localhost:5000/health` 접속하여 API 상태 확인
-
-2. **Streamlit 대시보드 접속**
-   - 브라우저에서 `http://localhost:8501` 접속
-
-3. **입력 정보 입력**
-   - 투수 상태: 이닝, 투구 수, 구속 감소량, 누적 실점
-   - 매치업 정보: 구종, 투수 손 방향, 타자 타석 방향, 다음 타자 정보
-
-4. **예측 결과 확인**
-   - 교체 권장 확률 (앙상블)
-   - RandomForest 및 LSTM 개별 확률
-   - 시각화 차트
-
-## 🔧 API 엔드포인트
-
-### POST `/predict`
-
-투수 교체 예측 요청
-
-**Request Body:**
-```json
-{
-  "inning": 6,
-  "pitch_count": 90,
-  "velocity_drop": 2.5,
-  "earned_runs": 2,
-  "pitcher_type": "선발투수",
-  "pitcher_hand": "R",
-  "batter_side": "R",
-  "current_batter_ops": 0.8,
-  "next_batter_side": "L",
-  "next_batter_ops": 0.9
-}
-```
-
-**Response:**
-```json
-{
-  "rf_prob": 0.6234,
-  "lstm_prob": 0.5891,
-  "final_prob": 0.6100,
-  "recommendation": "유지 가능",
-  "status": "success"
-}
-```
-
-### GET `/health`
-
-API 상태 확인
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "rf_model_loaded": true,
-  "lstm_model_loaded": true
-}
-```
-
-## 📈 모델 정보
-
-### RandomForest
-- 투수 상태 기반 교체 확률 예측
-- 특징: 이닝, 투구 수, 구속 감소, 실점, 구종, 좌우 매치업 등
-
-### LSTM (신경망)
-- 시퀀스 기반 피로도 패턴 학습
-- 실제로는 Dense 레이어 기반 신경망으로 구현
-
-### 앙상블
-- RandomForest (60%) + LSTM (40%) 가중 평균
-- 최종 교체 권장 확률 계산
-
-## 📝 데이터
-
-### Kaggle 데이터셋
-- **출처**: [MLB Pitch Data 2015-2018](https://www.kaggle.com/datasets/pschale/mlb-pitch-data-20152018)
-- **용도**: 모델 학습용 데이터
-
-### 데이터 컬럼
-- `inning`: 이닝
-- `pitch_count`: 투구 수
-- `velocity_drop`: 구속 감소량 (km/h)
-- `earned_runs`: 누적 실점
-- `pitcher_type`: 투수 유형 ("선발투수" 또는 "불펜투수")
-  - 선발투수: 100구/6이닝 기준 피로도
-  - 불펜투수: 20구/1이닝 기준 피로도
-- `pitcher_hand`: 투수 손 방향 (R/L)
-- `batter_side`: 현재 타자 타석 방향 (R/L/S)
-- `current_batter_ops`: 현재 타자 OPS (On-base Plus Slugging)
-- `next_batter_side`: 다음 타자 타석 방향
-- `next_batter_ops`: 다음 타자 OPS (On-base Plus Slugging)
-- `matchup_type`: 좌우 매치업 타입
-- `replace_decision`: 교체 여부 (0/1)
-
-## 🛠️ 기술 스택
-
-### Backend
-- **Flask**: RESTful API 서버
-- **scikit-learn**: RandomForest 모델
-- **TensorFlow/Keras**: LSTM 모델
-- **pandas/numpy**: 데이터 처리
-
-### Frontend
-- **Streamlit**: 웹 대시보드
-- **Plotly**: 인터랙티브 차트
-- **requests**: API 통신
-
-## 📌 주의사항
-
-1. **모델 파일**: 모델 파일이 없으면 더미 모델로 동작합니다. 실제 예측을 위해서는 `train_models.py`를 실행하여 모델을 학습하세요.
-
-2. **Kaggle 데이터**: 실제 Kaggle 데이터를 사용하려면 Kaggle API 토큰 설정이 필요합니다.
-
-3. **포트 충돌**: 백엔드(5000)와 프론트엔드(8501) 포트가 사용 중이면 변경하세요.
-
-## 🔄 향후 개선 사항
-
-- [ ] 실제 Kaggle 데이터 기반 모델 학습
-- [ ] 더 정교한 특징 엔지니어링
-- [ ] 모델 성능 평가 지표 추가
-- [ ] 히스토리 저장 및 분석 기능
-- [ ] 배치 예측 기능
-
-## 📄 라이선스
-
-이 프로젝트는 교육 목적으로 제작되었습니다.
-
-## 👥 기여
-
-버그 리포트 및 기능 제안은 이슈로 등록해주세요.
+# AI 기반 야구 투수 교체 의사결정 지원 서비스
+
+## 1. 프로젝트 개요
+### 프로젝트명
+AI 기반 야구 투수 교체 의사결정 지원 서비스
+
+### 문제 정의 및 목표
+투수 교체 판단은 이닝, 투구 수, 구속 저하, 실점, 타자 상성 등 다변수를 짧은 시간 안에 판단해야 합니다.  
+기존 경험 중심 의사결정을 보완할 수 있는 정량 기반 지원 시스템이 필요했습니다.
+
+따라서 예측 모델을 API와 대시보드로 제공하고, 실제 운영 가능한 클라우드 구조(배포, 보안, 저장, 복구)까지 포함한 엔드투엔드 서비스를 구현합니다.
+
+### 핵심 범위 (아키텍처/구현)
+- 서비스: 예측 API, 상태 API, 불펜 대시보드
+- 인프라: EC2, CloudFront, SSM Parameter Store, RDS, S3
+- 운영: GitHub Actions 자동 배포, HTTPS, 트러블슈팅/런북 기반 운영
+
+### 요구사항 요약
+#### 기능 요구사항
+- 경기 입력값으로 교체 확률/권장 결과를 JSON으로 반환
+- 대시보드에서 팀/상황 입력, 예측 결과, 상태 정보 확인
+- 예측 요청/응답을 RDS에 저장하고 동일 데이터를 S3에 아카이빙
+- 외부 로스터 수집 실패 시 fallback으로 핵심 기능 지속
+
+#### 비기능 요구사항
+- 가용성: 단일 EC2 환경에서 서비스 연속성 유지, 장애 시 롤백 가능
+- 보안: 비밀값은 SSM(SecureString)으로 관리, HTTPS 및 최소권한 SG/IAM 적용
+- 비용: 프리 티어/저비용 운영 + Budget/Free Tier 알림으로 과금 리스크 통제
+- 운영성: 배포 자동화 + `/health`, `/infra/status` 기반 운영 점검
 
 ---
 
-**⚾ 투수 교체 예측 시스템 | AI Coach | Powered by RandomForest & LSTM**
+## 2. 아키텍처 설계
+![현재 아키텍처 다이어그램](docs/architecture.png)
+
+아래는 동일 구성을 텍스트로 확인할 수 있는 `mermaid` 버전입니다.
+
+```mermaid
+flowchart LR
+    GH[GitHub] -->|Push / Actions Trigger| GA[GitHub Actions]
+
+    subgraph AWS["AWS Cloud (ap-southeast-2)"]
+        direction LR
+
+        subgraph EC2["AWS EC2"]
+            direction TB
+            subgraph DC["Docker Compose"]
+                direction LR
+                NGINX["Nginx\n:80 / :443"]
+                FE["Frontend\nStreamlit\n:8501"]
+                BE["Backend\nFlask + Gunicorn\n:5000"]
+                CB["Certbot\n(renew)"]
+            end
+            NGINX -->|"/"| FE
+            NGINX -->|"/api/*"| BE
+            CB -. cert files .- NGINX
+        end
+
+        RDS[(AWS RDS\nPostgreSQL)]
+        S3[(AWS S3\nPrediction Archive)]
+        SSM[(AWS SSM\nParameter Store)]
+        CF[CloudFront]
+    end
+
+    U[User Browser] --> CF
+    CF --> NGINX
+    GA -->|Build & Deploy| EC2
+    BE -->|read/write| RDS
+    BE -->|put JSON| S3
+    BE -->|get params| SSM
+```
 
 ---
 
-### 1) 서비스 범위 확장: 불펜 운영 보조 기능 추가
+## 3. 아키텍처 의사결정
+### EC2 + Docker Compose 선택 이유
+- 프리 티어/저비용 제약에서 가장 빠르게 운영 가능한 구조
+- 단일 인스턴스 기반으로 배포/장애 대응/문서화 완성에 적합
+- 복잡한 오케스트레이션보다 "운영 가능한 최소 구조" 우선
 
-- 기존 기능: `/predict` 기반 투수 교체 확률 예측
-- 추가 기능: 팀 단위 불펜 상태 조회 + 상황별 추천 투수 제안
-- 핵심 로직:
-  - 불펜 에너지 지수(`energy_index`)
-  - 위험도(`risk_level`)
-  - 투수별 등판 가능성(`availability`)
-  - 이닝/점수차/타자유형 반영 추천 점수(`recommendation_score`)
+### CloudFront / SSM / RDS / S3 채택 이유
+- CloudFront: 사용자 접근 안정화, HTTPS 엣지 제공, 경로 기반 라우팅 보완
+- SSM: 비밀값/환경설정의 코드 분리 및 중앙 관리
+- RDS: 예측 요청/응답 구조화 저장(추적/검증/회고)
+- S3: 예측 이벤트 원본 JSON 아카이빙(감사/복구/분석)
 
-### 2) 백엔드 API 신규 엔드포인트
+---
 
-기존 `/predict`, `/health`는 유지되며, 아래 API가 추가되었습니다.
+## 4. 보안 및 배포·운영 자동화
+### 보안 원칙
+- IAM 최소권한과 보안 그룹 최소 개방으로 접근 통제
+- 비밀값(DB URL, API 키)은 SSM Parameter Store(SecureString)로 관리해 코드/저장소와 분리
+- 사용자 트래픽은 Nginx + Certbot + CloudFront 기반 HTTPS로 보호
 
-- `GET /teams`
-  - KBO 팀 목록 조회
-- `GET /bullpen/status?team=<team_name>`
-  - 팀 불펜 요약 상태 조회 (에너지 지수/위험도/지표)
-- `GET /bullpen/pitchers?team=<team_name>`
-  - 팀 투수별 상태 목록 조회
-  - 로스터 데이터 사용 불가 시 `503` + `ROSTER_UNAVAILABLE`
-- `POST /bullpen/recommend`
-  - 입력 상황(이닝/점수차/타자유형)에 맞는 추천 투수 반환
+### 배포 자동화
+- GitHub Actions로 이미지 빌드/배포/재기동 자동화
+- 배포 시 시크릿을 `.env`에 주입하고 서버 환경 차이(Compose 버전)는 스크립트에서 흡수
+- HTTPS 설정 유실 방지를 위해 배포 파이프라인에 자동 적용 단계 포함
 
-#### `POST /bullpen/recommend` 예시
+### 운영 안정화
+- `/health`, `/api/infra/status`, `/api/infra/predictions`로 상태 상시 점검
+- 장애 시 이전 이미지로 롤백 가능한 절차 마련, runbook으로 표준화
+- 외부 의존 기능(로스터 크롤링)은 기본 OFF + fallback 전략으로 서비스 연속성 확보
 
-Request:
-```json
-{
-  "team": "LG Twins",
-  "inning": 8,
-  "score_diff": 1,
-  "batter_side": "L",
-  "count": 2
-}
-```
+---
 
-Response (요약):
-```json
-{
-  "status": "success",
-  "team": "LG Twins",
-  "context": {
-    "inning": 8,
-    "score_diff": 1,
-    "batter_side": "L"
-  },
-  "bullpen": {
-    "energy_index": 67.4,
-    "risk_level": "caution"
-  },
-  "recommendations": [
-    {
-      "name": "홍길동",
-      "handed": "L",
-      "recommendation_score": 0.81
-    }
-  ],
-  "reasons": [
-    "최근 3일 피로 지표 반영",
-    "이닝/점수차 레버리지 반영",
-    "좌우 매치업 반영"
-  ]
-}
-```
+## 5. 트러블슈팅 사례
+### 5-1. 배포 이슈
+#### Docker Compose 배포 실패
+- 문제: EC2 배포 단계에서 Compose 오류로 실패
+- 원인: 서버별 Compose 설치/버전 불일치
+- 조치: Compose 설치 및 `docker compose`/`docker-compose` 자동 감지 적용
+- 결과: 배포 파이프라인 정상화
+- 재발방지: 실행 환경 흡수형 배포 스크립트 유지
 
-### 3) 데이터 소스 계층 추가
+#### 재배포 후 HTTPS 초기화
+- 문제: 배포 후 HTTPS가 HTTP 설정으로 되돌아감
+- 원인: 배포 시 Nginx 설정 파일 덮어쓰기
+- 조치: HTTPS 적용 스크립트 개선 + 배포 후 자동 실행
+- 결과: 재배포 후 HTTPS 지속 유지
+- 재발방지: 수동 HTTPS 절차를 CI/CD에 내장
 
-- `backend/data_sources/thesportsdb_client.py`
-  - TheSportsDB에서 팀/최근 경기 데이터 조회
-  - 외부 API 실패 시 fallback 팀 목록 사용
-- `backend/data_sources/kbodata_client.py`
-  - `kbodata` 기반 팀 투수 로스터 조회
-  - Selenium + ChromeDriver 사용
-  - 타임아웃/캐시/오프시즌 fallback 고려
+#### SSM 값 미로드 (`loaded=0`)
+- 문제: SSM 활성화 상태인데 파라미터 주입 실패
+- 원인: 앱 조회 리전과 SSM 생성 리전 불일치
+- 조치: 리전 통일 및 파라미터 이름 명시
+- 결과: `ssm.loaded` 정상 증가 확인
+- 재발방지: 배포 전 리전/계정/경로 사전 점검
 
-### 4) 프론트엔드 멀티페이지 확장
+### 5-2. 운영 이슈
+#### CloudFront 경유 API 301/504
+- 문제: CloudFront 도메인에서 API가 리다이렉트/타임아웃
+- 원인: 오리진/프로토콜/동작 설정 불일치
+- 조치: 오리진/Behavior 경로 정책 재정렬
+- 결과: CloudFront 경유 `/api/health` 200 복구
+- 재발방지: CDN 변경 시 경로별 검증 체크리스트 적용
 
-- 기존 메인 예측 화면: `frontend/app.py` (유지)
-- 신규 페이지: `frontend/pages/1_Bullpen_Dashboard.py`
-  - 팀 선택
-  - 불펜 체력 시각화(bar chart + 테이블)
-  - 상황별 추천 투수 출력
+#### Streamlit WebSocket 실패
+- 문제: 대시보드 로딩 정체 및 `/_stcore` 오류
+- 원인: WebSocket 경로/프록시 타임아웃 설정 부족
+- 조치: Nginx WebSocket 헤더/timeout 보강 + CloudFront 경로 보완
+- 결과: 화면 로딩/상호작용 정상화
+- 재발방지: Streamlit 운영 시 WebSocket 점검 항목 상시 유지
 
-실행 시 Streamlit 사이드바/페이지 목록에서 불펜 대시보드를 함께 사용할 수 있습니다.
+#### 로스터 수집 실패 반복
+- 문제: Selenium 기반 로스터 조회 실패로 화면 오류
+- 원인: 운영 컨테이너에서 브라우저 자동화 불안정
+- 조치: 로스터 기능 기본 OFF + fallback 계산 적용
+- 결과: 외부 수집 실패 시에도 핵심 기능 지속
+- 재발방지: 실시간 크롤링 의존 기능을 배치/캐시 중심으로 전환
 
-### 5) 신규 의존성 (백엔드)
+---
 
-기존 라이브러리에 더해 아래가 추가되었습니다.
+## 6. 비용 설계
+### 프리 티어 제약 하 설계 원칙
+- 고비용 관리형 구성(ECS/Fargate/ALB) 제외, 단일 EC2 + Docker Compose 중심 설계
+- 서비스 연속성은 유지하되 초기 단계에서는 비용 효율 우선
+- CloudFront/SSM/RDS/S3는 필요한 범위만 단계 도입해 비용 급증 방지
 
-- `requests`
-- `kbodata`
-- `selenium`
-- `webdriver-manager`
-
-`backend/requirements.txt` 재설치를 권장합니다.
-
-```bash
-cd backend
-python -m pip install -r requirements.txt
-```
-
-### 6) 신규 환경변수 (선택/권장)
-
-- `THESPORTSDB_API_KEY`
-  - TheSportsDB API 키 (미설정 시 기본 공개 키 사용)
-- `KBO_CHROMEDRIVER_PATH`
-  - ChromeDriver 경로 직접 지정 시 사용
-- `KBO_ROSTER_TIMEOUT_SEC`
-  - 로스터 조회 타임아웃(초)
-- `KBO_ROSTER_SCAN_LIMIT_SEC`
-  - 과거 월 스캔 제한 시간(초)
-- `KBO_ROSTER_CACHE_TTL_SEC`
-  - 로스터 캐시 유지 시간(초)
-- `FRONTEND_API_TIMEOUT_SEC`
-  - 프론트엔드 API 호출 타임아웃(초)
-
-### 7) 동작/장애 대응 참고
-
-- 외부 데이터 연동 실패 시에도 일부 기능은 fallback 데이터로 동작합니다.
-- 단, 팀별 투수 로스터가 확보되지 않으면 `/bullpen/pitchers`, `/bullpen/recommend`는 `503`을 반환할 수 있습니다.
-- 이 경우 응답의 `error_code`, `roster_reason` 필드로 원인을 확인할 수 있습니다.
+### 비용 상한/알림/절감 전략
+- AWS Budget(0/1/3달러 구간) 및 Free Tier usage alert 설정
+- 미사용 리소스(EIP, 스냅샷, 불필요 로그) 정리 + 로그 보관 기간 제한
+- 단일 리전 운영, 최소 스펙 유지, 불필요한 실시간 크롤링 축소로 운영비 변동성 완화
